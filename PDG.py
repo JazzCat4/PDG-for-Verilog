@@ -281,8 +281,15 @@ def main():
         extractor = PDGExtractor()
         extractor.visit(ast)
         extractor.print_edges()
+
+        #CAN USE GRAPH TO CHECK DEPENDENCIES, EG:
+        # if extractor.graph.has_edge("cpu_privilege_level", "priv_ok") == False:
+        #     print("MISSING EDGE")
+        # else:
+        #     print("HAS EDGE!")
+        
     except Exception as e:
-        print(f"An erro occured: {e}")
+        print(f"An error occured: {e}")
         print(f"Error type: {type(e).__name__}")
 
 
