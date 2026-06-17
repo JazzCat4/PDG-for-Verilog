@@ -1,16 +1,9 @@
+import sys
 from pyverilog.vparser.parser import parse
 from pyverilog.vparser.ast import *
 import networkx as nx
 import matplotlib.pyplot as plt
-
-
-#Example generic traversal
-def walk(node, depth=0):
-    print(" " * depth + node.__class__.__name__)
-
-    for child in node.children():
-        walk(child, depth + 1)
-
+from networkx.drawing.nx_agraph import graphviz_layout
 
 class PDGExtractor:
 
@@ -270,17 +263,86 @@ class PDGExtractor:
             filename
         )
 
-def main():
-    try:
+def plot_pdg(pdg):
+    G = pdg.graph
 
-        file_name = input("Enter file name: ")
+    plt.figure(figsize=(12, 8))
+
+    # Layout algorithm
+    #pos = nx.shell_layout(G)
+    pos = graphviz_layout(G, prog="dot")
+    
+    # Separate edge types
+    data_edges = [
+        (u, v)
+        for u, v, d in G.edges(data=True)
+        if d.get("dep_type") == "data"
+    ]
+
+    control_edges = [
+        (u, v)
+        for u, v, d in G.edges(data=True)
+        if d.get("dep_type") == "control"
+    ]
+
+    # Draw nodes
+    nx.draw_networkx_nodes(
+        G,
+        pos,
+        node_size=500
+    )
+
+    # Draw labels
+    nx.draw_networkx_labels(
+        G,
+        pos,
+        font_size=10
+    )
+
+    # Draw data dependencies
+    nx.draw_networkx_edges(
+        G,
+        pos,
+        edgelist=data_edges,
+        edge_color="blue",
+        arrows=True,
+        arrowstyle='-|>',
+        arrowsize=20,
+        width=1
+    )
+
+    # Draw control dependencies
+    nx.draw_networkx_edges(
+        G,
+        pos,
+        edgelist=control_edges,
+        edge_color="red",
+        style="dashed",
+        arrows=True,
+        arrowstyle='-|>',
+        arrowsize=20,
+        width=1
+    )
+
+    plt.title("Program Dependency Graph")
+    plt.axis("off")
+    plt.show()
+
+
+def main():
+    if len(sys.argv) != 2:
+        print("Please enter 1 argument only, the name of the file")
+        return
+    
+    file_name = sys.argv[1]
+
+    try:
         ast, directives = parse([file_name])
-        #ast.show()
-        #walk(ast)
 
         extractor = PDGExtractor()
         extractor.visit(ast)
         extractor.print_edges()
+        plot_pdg(extractor)
 
         #CAN USE GRAPH TO CHECK DEPENDENCIES, EG:
         # if extractor.graph.has_edge("cpu_privilege_level", "priv_ok") == False:
@@ -291,9 +353,6 @@ def main():
     except Exception as e:
         print(f"An error occured: {e}")
         print(f"Error type: {type(e).__name__}")
-
-
-
 
 if __name__ == "__main__":
     main()
